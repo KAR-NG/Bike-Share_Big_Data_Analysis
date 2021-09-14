@@ -1,21 +1,19 @@
 ---
 title: "Bike-Share: How to convert more casual riders into annual members?"
 author: "Kar Ng"
-date: "5/31/2021"
+date: "2021"
 output:
-  html_document:
-    code_folding: hide
+  github_document:
     toc: true
-    toc_float: true
     toc_depth: 3
-  pdf_document: default
-subtitle: 'Google Analytics Capstone Project 1'
+subtitle: 'Google Analytics Capstone Project'
+always_allow_html: yes
 ---
 
 ***
 
 
-![](C:\Users\karho\Desktop\Google Data Analytics Certificate\Course 8 Materials - Capstone project\cyclistic\thumbnail1.png)
+![](https://raw.githubusercontent.com/KAR-NG/bikeshare/main/thumbnail1.png)
 
 
 ***
@@ -39,7 +37,7 @@ Results revealed that casual riders contributed 51% of the total riding duration
 
 <center>
 
-![](C:\Users\karho\Desktop\Google Data Analytics Certificate\Course 8 Materials - Capstone project\cyclistic\thumbnail2.png)
+![](https://raw.githubusercontent.com/KAR-NG/bikeshare/main/thumbnail2.png)
 
 </center>
 
@@ -66,7 +64,7 @@ Cyclistic, is a fictional bike-share company designed by this Google data analyt
 
 <center>
 
-![Cyclistic](C:\Users\karho\Desktop\Google Data Analytics Certificate\Course 8 Materials - Capstone project\cyclistic\pic-cyclistic.JPG)
+![Cyclistic](https://raw.githubusercontent.com/KAR-NG/bikeshare/main/pic-cyclistic.JPG)
 
 </center>
 
