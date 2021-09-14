@@ -1,0 +1,1193 @@
+---
+title: "Bike-Share: How to convert more casual riders into annual members?"
+author: "Kar Ng"
+date: "5/31/2021"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_float: true
+    toc_depth: 3
+  pdf_document: default
+subtitle: 'Google Analytics Capstone Project 1'
+---
+
+***
+
+
+![](C:\Users\karho\Desktop\Google Data Analytics Certificate\Course 8 Materials - Capstone project\cyclistic\thumbnail1.png)
+
+
+***
+
+
+```{r echo=FALSE}
+bytes <- file.size("cyclistic.Rmd")
+words <- bytes/10
+minutes <- words/200
+```
+
+Reading time: `r round(minutes)` minutes
+
+## 1 PROJECT SUMMARY 
+
+This is one of the two capstone projects of the 6-month extensive Google Data Analytics Professional Certificate program. This project was about analysing big data for a fictional bike-sharing company in Chicago on how best to convert casual riders into annual members.  
+
+1 multi-layers interactive map, 4 multi-layers ggplots (scatter, line, and bar plots), 1 interactive table, and 7 basic statistics tables were coded and achieved insightful results. 12 data sets that hosting the total of 3.7 millions of rows and 13 variables were combined, cleaned, manipulated and analysed using R programming language. Data integrity of this project was assessed. Data processing steps were documented.   
+
+Results revealed that casual riders contributed 51% of the total riding duration in the given 12 months data to analyse. Casual riders rided the most on Saturday (23%), doubling the size in week days (11%), however, 4 days in a week has 11% indicating a steady demand of rides and targeting casual riders on these days may actually achieve higher conversion rate. Casual riders love spring and summer but decreased dramatically during months in Autumn and achieve near-zero ride per day in winter. Winter has temperatures below zero degrees Celsius. Casual riders concentrate in regions near coasts and city center. They have adoped 2 newly introduced ride-able bikes and has replaced the usual docked bike in 2021 as their primary and secondary bikes.   
+
+<center>
+
+![](C:\Users\karho\Desktop\Google Data Analytics Certificate\Course 8 Materials - Capstone project\cyclistic\thumbnail2.png)
+
+</center>
+
+## 2 R PACKAGES 
+
+R Packages loaded to perform functions required in this project: tidyverse series (ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, and forcats), skimr, kableExtra, lubridate, leaflet, scales, hms, ggrepel and DT.
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(skimr)
+library(kableExtra)
+library(lubridate)
+library(leaflet)
+library(scales)
+library(hms)
+library(ggrepel)
+library(DT)
+```
+
+
+
+## 3 SCENARIO AND BUSINESS TASKS
+Cyclistic, is a fictional bike-share company designed by this Google data analytic certification course. In the scenario, the company features more than 5824 bicycles and 692 docking stations. The company also offers many types of bicycle to account for different group of riders, including standard two-wheeled bikes, reclining bikes, hand tricycles, and cargo bikes. Cyclistic also offers two types of memberships, a casual and an annual type. Casual type is designed for single-ride and full-day passes.
+
+<center>
+
+![Cyclistic](C:\Users\karho\Desktop\Google Data Analytics Certificate\Course 8 Materials - Capstone project\cyclistic\pic-cyclistic.JPG)
+
+</center>
+
+Cyclistic recently found that converting more casual riders into annual members is more profitable. Therefore, they will need a tailored marketing strategy for casual riders, supported data analysis. My task is to analyse the available data to answer following business questions with compelling data insights and professional data visualisation.
+
+* How are casual riders use Cyclistic bikes differently?  
+* Why would casual riders buy Cyclistic annual memberships?  
+* How can Cyclistic use digital media to influence casual riders to become members?  
+
+## 4 DATA PREPARATION
+### 4.1 Data sources
+
+I have been provided with Cyclistic's previous 12 months trip data, starting from May 2020 to April 2021. These data were stored in 12 spreadsheets in a monthly basis. Thus, they are additive to each other by date. All of them have the same number of columns and column names.  
+
+
+### 4.2 Data import
+The course introduced that a data set is considered small if it has less than 100k rows and spreadsheet could be used for analysis and basic analysis. However, after inspecting the first of the twelve spreadsheets, it has already 200k rows of data. I am expecting after combining all the 12 spreadsheets, I would have a data frame exceeding 1 million rows of data and beyond the scale a spreadsheet can handle. Therefore, I am using R for this data analysis project. 
+
+
+```{r, results="hide", message=FALSE}
+
+# Import individual csv spreadsheet
+may20 <- read_csv("202005-divvy-tripdata.csv") # 200,274 rows | 13 columns
+jun20 <- read_csv("202006-divvy-tripdata.csv") # 343,005 rows | 13 columns
+jul20 <- read_csv("202007-divvy-tripdata.csv") # 551,480 rows | 13 columns
+aug20 <- read_csv("202008-divvy-tripdata.csv") # 622,361 rows | 13 columns
+sep20 <- read_csv("202009-divvy-tripdata.csv") # 532,958 rows | 13 columns
+oct20 <- read_csv("202010-divvy-tripdata.csv") # 388,653 rows | 13 columns
+nov20 <- read_csv("202011-divvy-tripdata.csv") # 259,716 rows | 13 columns
+dec20 <- read_csv("202012-divvy-tripdata.csv") # 131,573 rows | 13 columns
+jan21 <- read_csv("202101-divvy-tripdata.csv") # 96,834 rows | 13 columns
+feb21 <- read_csv("202102-divvy-tripdata.csv") # 49,622 rows | 13 columns
+mar21 <- read_csv("202103-divvy-tripdata.csv") # 228,496 rows | 13 columns
+apr21 <- read_csv("202104-divvy-tripdata.csv") # 337,230 rows | 13 columns
+
+# combine all csv files into one table
+mydata <- rbind(may20, jun20, jul20, aug20, sep20, oct20, nov20, dec20, jan21, feb21, mar21, apr21) 
+
+
+```
+
+As expected, after importing all the spreadsheets and combining them into one, the overall data set has nearly 3.7 millions of rows. A specialized data analysis software such as R is needed to process the data effectively.
+
+
+### 4.3 Data description
+
+This table describes the basic details of the data set.  
+
+```{r}
+
+Variables <- names(mydata)
+Description <- c("ID of individual ride", 
+                 "There are 3 types of rideable bike which are classic bike, docked bike, and eletric bike",
+                 "Date and time that the individual riding starting at",
+                 "Date and time that the individual riding ended at",
+                 "Associated starting station of this riding",
+                 "Station id of the starting station",
+                 "Associated ending station of this riding",
+                 "Station id of this ending station",
+                 "Ride starting latitude",
+                 "Ride starting longitude",
+                 "Ride ending latitude",
+                 "Ride ending latitude",
+                 "Membership status of the rider, classified into annual membership or casual membership")
+
+des <- data.frame(Variables, Description)
+
+des %>% 
+  kbl(align = "l",
+      caption = "Table 4.3 Data set description") %>% 
+  kable_styling(bootstrap_options = c("bordered",
+                                      "striped",
+                                      "hover",
+                                      "condensed"))  
+    
+```
+
+### 4.4 Data exploration
+
+Following tables show that this combined data set has 3,742,202 rows of observations and 13 variables. 7 out of the 13 variables are in character type, 4 columns are numeric, and the remaining 2 are date-time (or known as POSIXct format in R).
+
+The **complete_rate** tells us the completeness of each variable, or how many they have missing values in their column, which is associated with the **n_missing** before it. We can clearly see that there are 6 variables have missing data:
+
+* start_station_name  
+* start_station_id    
+* end_station_name  
+* end_station_id  
+* end_late  
+* end_lng  
+
+***
+
+```{r, echo = FALSE}
+mydata %>% skim_without_charts()
+
+```
+***
+
+I have also identified some *character* variables that can be used for data grouping, which is helpful in later analysis. To use them in this purpose, I will convert them into *factor* type in data manipulation section. These variables are:  
+
+* rideable_type  
+* start_station_name  
+* end_station_name  
+* member_casual  
+
+Another way to view how the type of our 13 variables are being assigned by R: 
+
+```{r}
+glimpse(mydata)
+
+```
+A helpful table describing some common R data type we would encounter in this project.
+
+```{r}
+
+Type <- c("<chr>", "<dbl>", "<fctr>", "<date>", "<dttm>")
+Explanation <- c("Character, for text data.", 
+                 "Double, for number with decimal places.",
+                 "factor, also text data but are usually used to grouping.",
+                 "date, as its name would suggest.",
+                 "date-time, combination of date and time.")
+
+r_datatype <- data.frame(Type, Explanation)
+
+r_datatype %>% 
+  kbl(table.attr = "style = 'width: 60%;'",
+      caption = "Table 4.4 Common R data types in this project.") %>% 
+  kable_styling(bootstrap_options = c("bordered",
+                                      "striped",
+                                      "hover",
+                                      "condensed"))
+
+```
+
+## 5 DATA INTEGRITY ASSESSMENT
+
+**Negatives**  
+
+* I was introduced that Cyclistic has standard two-wheeled bikes, reclining bikes, hand tricycles, and cargo bikes. However, only 1 column named "rideable_type" was provided in the data sets and showing 3 different type of bikes that were not mentioned in the introduction - classic bike, docked-bike and electric bike. No further details were provided to help clarifying what these new type of bikes are and the relationship between them and previously mentioned 4 type of bikes. 
+  
+* I was provided with a column classifying each ride into casual and annual membership, which is good. However, it would be better if the two types of the casual membership, single-ride and full-day passes, introduced in the introduction section are also being included in the data set, for a better complete analysis. 
+
+* Some other useful variables were also not included in the data set such as weather of the day, seasons, public holidays, temperatures, wind speed, and if available, rider ages and gender can also be helpful in designing marketing strategy.  
+
+
+**Positives**   
+
+* Fairness - The data was system-generated, base on its size of being millions rows with individual ride IDs. The data should be quite fair and free from collection biases and erroneous. 
+
+* Inclusivity: Apart from lacking some variables, the data was quite inclusive. The Data was in the range of 24 hours and was provided to me as a whole. It is the entire population data of the requested 12-month period, instead of sub-set data sampled from the mother data set. This eliminate the issue of sampling bias. 
+
+* All data was collected by the original company, Cyclistic, instead of from second- or third party sources. Cyclistic has to proper system to collect the big data. All provided data were also up-to-date and current. Comprehensiveness can be argued for lacking some useful variables, but the data set still have many other important variables to synthese desired outcome. In real world case, stakeholders will be approached about this issue and be informed.
+
+
+
+## 6 DATA CLEANING AND MANIPULATION
+
+### 6.1 Data type conversion
+
+#### 6.1.1 Character to factor
+In this section, following variables are being converted from character to factor. They are string variables with distinctive levels that are useful for data grouping and analysis. Please note that numerical variables can also have distinctive levels and be converted to factor, but it is not in this case.  
+
+* rideable_type    
+* start_station_name    
+* end_station_name        
+* member_casual    
+
+```{r}
+chr_to_fct_variables <- c("rideable_type", 
+                          "start_station_name", 
+                          "end_station_name", 
+                          "member_casual")
+
+mydata_cleaned <- mydata
+
+mydata_cleaned[,chr_to_fct_variables] <- lapply(mydata_cleaned[,chr_to_fct_variables], factor)
+
+
+```
+
+After conversion, we are able to use R to identify their distinctive levels and how many are there.
+
+
+```{r, eval=FALSE}
+#---- to find level information of these variables----#
+
+# rideable_type
+nlevels(mydata_cleaned$rideable_type)
+levels(mydata_cleaned$rideable_type) # Explore it as the number of levels is small and suitable for grouping
+
+# start_station_name
+nlevels(mydata_cleaned$start_station_name)
+
+# end_station_name
+nlevels(mydata_cleaned$end_station_name)
+
+# member_casual
+nlevels(mydata_cleaned$member_casual) # Explore it as the number of levels is small and suitable for grouping
+levels(mydata_cleaned$member_casual)
+
+head(levels(mydata_cleaned$start_station_name)) # to find the first 6 station names
+head(levels(mydata_cleaned$end_station_name)) # to find the first 6 station names
+
+```
+
+
+```{r}
+#---- Creating the table ----#
+
+Variable <- c("rideable_type", "start_station_name", "end_station_name", "member_casual")
+Level_count <- c("3", "711", "712", "2")
+Levels <- c("classic_bike, docked_bike, electric_bike",
+            "2112 W Peterson Ave, 63rd St Beach, 900 W Harrison St, Aberdeen St & Jackson Blvd...",
+            "2112 W Peterson Ave, 63rd St Beach, 900 W Harrison St, Aberdeen St & Jackson Blvd...",
+            "Casual, member")
+
+data.frame(Variable, Level_count, Levels) %>% 
+  kbl(caption = "Table 6.1.1 Distinctive levels of grouping variables") %>% 
+  kable_classic()
+
+```
+
+#### 6.1.2 Date
+
+We shall only start using date or date-time for our analysis when they are in the correct format, as being recognized and labeled as "date" or "date-time". Date or date-time are commonly labelled as a "character" variable if their arrangement of year, month, date, hour, minute, and second do not match with the date format of R in the form of year-month-date_hour-minute-second. 
+
+However, the date in our dataset is perfectly to go. They match the date format of R and have been recognised as date-time (<dttm>) by R. 
+
+Our date-time variables: **started_at** and **ended_at**:
+
+```{r}
+glimpse(mydata_cleaned)
+```
+
+
+### 6.2 Handling the missing values
+
+There are not much values missing in this data set but only a small proportion (compared to overall data set) in these variables:  
+
+* Start station name (**start_station_name**) - 148231 missing, accounts for 4% (0.96)	   
+* Start station id (**start_station_id**) - 148857 missing, accounts for 4%	(0.96)   
+* End station name (**end_station_name**) - 171317 missing, accounts for 4.6% (0.954)
+* End station id (**end_station_id**) - 171778 missing, accounts for 4.6% (0.954)
+
+```{r}
+skim_without_charts(mydata_cleaned)
+```
+
+***
+
+Missing values can usually be filled up with valid values that is either retrieved by adjacent related variables, or looking for median or mean, or getting inputs from authorised stakeholders. However, the nature of these missing values in these locational variables could not be retried by these methods. 
+
+Since these missing values only contribute less than 5% of the data set, I will drop them in this project.
+
+
+
+### 6.3 Data manipulation
+This section synthesise new variables base on current data set and internet sources. 
+
+#### 6.3.1 Create "duration"
+I calculate the traveling times of each trip and stored it in a column named **duration.min**. The "min" stands for "minute", and the column is relocated after the column **ended_at**.
+
+```{r}
+mydata_cleaned <- mydata_cleaned %>% 
+  mutate(duration.min = ended_at - started_at) %>% 
+  relocate(duration.min, .after = ended_at) %>% 
+  mutate(duration.min = minute(seconds_to_period(duration.min)))
+
+
+```
+
+#### 6.3.2 Create "year, month, day, hour, minute, date, weekday, season, workingday"  
+
+This section will synthesise these new variables to help achieve better insights.
+
+```{r}
+
+New_variables <- c("year",
+                   "month",
+                   "day", 
+                   "hour",
+                   "minute",
+                   "date",
+                   "weekday",
+                   "season", 
+                   "workingday")
+Levels <- c("Based on the date-time column - started_at.",
+            "Based on the date-time column - started_at.",
+            "Based on the date-time column - started_at.",
+            "Based on the date-time column - started_at.",
+            "Based on the date-time column - started_at.",
+            "A combination of the year-month-day.",
+            "Monday, tuesday, wednesday, thursday, friday, saturday and sunday.",
+            "Spring, summer, fall, winter. ",
+            "Yes: include Monday, Tuesday, Wednesday, Thursday and Friday. \n No: include Saturday, Sunday, and public holidays.")
+Reasons <- c("To aid data grouping during analysis.",
+             "To aid data grouping during analysis.",
+             "To aid data grouping during analysis.",
+             "To aid data grouping during analysis.",
+             "To aid data grouping during analysis.",
+             "Prepare in advance for whenever needed.",
+             "To account for differences between individual weekday.",
+             "As temperature may affect ridering experience, particularly as a casual rider.",
+             "Interesting to see how are riders count differs between working day and non-working day.")
+
+df_newvar <- data.frame(New_variables, Levels, Reasons)
+
+df_newvar %>% kbl(caption = "Table 6.3.2.1 New variables adding to the existing table.") %>% 
+  kable_styling(bootstrap_options = c("border", "hover", "condensed"))
+
+```
+
+**Creating year, month, day, hour, minute and weekday**
+
+*Important note*: variables - "year", "month", and "day" are created using data from the "started_at" column. Click the right side *code* to view my codes. 
+
+```{r}
+mydata_cleaned <- mydata_cleaned %>% 
+  mutate(year = year(started_at),          
+         month = month(started_at),
+         day = day(started_at),
+         hour = hour(started_at),
+         minute = minute(started_at),
+         date = make_date(year, month, day),
+         weekday = weekdays(started_at)) 
+
+
+
+```
+
+**Creating monthly average temperature (Celsius) and seasons**
+
+Following information are extracted from Chicago climatic table on [Wikipedia](https://en.wikipedia.org/wiki/Chicago). Note that Chicago has shorter spring and autumn but longer winter and summer.
+
+```{r}
+
+month <- 1:12
+mean_temp_oC <- c(-3.2, -1.2, 4.4, 10.5, 16.6, 22.2, 24.8, 23.9,
+                         19.9, 12.9, 5.8, -0.3)
+season <- c(rep("winter", 3),
+            rep("spring", 2),
+            rep("summer", 4),
+            rep("autumn", 2),
+            "winter"
+            )
+
+data.frame(month, mean_temp_oC, season) %>% 
+  kbl(alig = "l",
+      table.attr = "style  ='width: 60%;'",
+      caption = "Table 6.3.2.2 Monthly average temperature (Celsius) with seasons") %>% 
+  kable_styling(bootstrap_options = c("bordered",
+                                      "hover",
+                                      "striped"))
+
+```
+
+Adding this table to our cleaned data set by right-hand *Code* .
+
+```{r}
+
+season_table <- data.frame(month, mean_temp_oC, season)
+mydata_cleaned <- merge(mydata_cleaned, season_table, by = "month") %>% 
+  relocate(month, .after = year)
+
+```
+
+
+**Creating workingday**
+
+Working day, or "workingday" in the data set has 2 values, either "yes" or "no". The "no" meaning it is not a working day which will include Saturday, Sunday and public holidays. Following public holiday days data are extracted from [Chicago Government Website](https://www.chicago.gov/city/en/narr/misc/city-holidays.html). 
+
+```{r}
+
+month <- c(1, 1, 2, 2, 3, 5, 7, 9, 10, 11, 11, 12, 12)
+day <- c(1, 18, 12, 15, 1, 31, 5, 6, 11, 11, 25, 24, 31)
+festival <- c("New Year's Day",
+              "Dr. Martin Luther King, Jr.'s Birthday",
+              "Lincoln's Birthday",
+              "President's Day",
+              "Pulaski Day",
+              "Memorial Day", 
+              "Independence Day",
+              " Labor Day",
+              "Columbus Day",
+              "Veteran's Day",
+              "Thanksgiving Day",
+              "Christmas Day",
+              "New Year's Day"
+              )
+
+data.frame(month, day, festival) %>% 
+  kbl(align = "l",
+      table.attr = "style = 'width: 60%;'",
+      caption = "Table 6.3.2.4 Chicago public holidays") %>% 
+  kable_styling(bootstrap_options = c("bordered",
+                                      "striped",
+                                      "hover"))
+
+```
+
+Adding this table to our cleaned data set by right-hand *Code* .  
+
+```{r}
+
+mydata_cleaned <- mydata_cleaned %>%
+  mutate(workingday = case_when(
+    weekday == "Sunday" ~ "No",
+    weekday == "Saturday" ~ "No",
+    month == 1 & day == 1 ~ "No",
+    month == 1 & day == 18 ~ "No",
+    month == 2 & day == 12 ~ "No",
+    month == 2 & day == 15 ~ "No",
+    month == 3 & day == 1 ~ "No",
+    month == 5 & day == 31 ~ "No",
+    month == 7 & day == 5 ~ "No",
+    month == 9 & day == 6 ~ "No",
+    month == 10 & day == 11 ~ "No",
+    month == 11 & day == 11 ~ "No",
+    month == 11 & day == 25 ~ "No",
+    month == 12 & day == 24 ~ "No",
+    month == 12 & day == 31 ~ "No",
+    TRUE ~ "Yes"
+  )) 
+
+
+```
+
+
+### 6.4 Data processing documentation
+
+The name of original data set in R is called "mydata". The data set is now called "mydata_cleaned" and stored in a different R object.  
+
+Summary of cleaning and processing I have done to the original dataset:
+
+* Converted variables **rideable_type**, **start_station_name **, **end_station_name**, and **member_casual** from character to factor.  
+* 11 new variables (columns) were added to the original data set. They are: 
+
+```{r}
+head(mydata_cleaned[,c(5, 15:24)]) %>%  # showing only top 6 observations of these new variables
+  kbl(align = "c",
+      caption = "The first 6 rows of the data set") %>% 
+  kable_styling(bootstrap_options = c("bordered",
+                                      "hover",
+                                      "striped"))
+
+
+```
+
+
+## 7 SUMMARY STATISTICS
+Summarizing some introductory statistics of our data set to quick familiarising ourselves with some of the patterns in the data. 
+
+### 7.1 Casual riders ride the most!
+
+We have annual members 15% higher than casual riders, the proportion of casual riders is larger than I thought (Table 7.1.1). More importantly, casual riders that has a 15% lower in the population even ride slightly longer than annual members at a 2% different in the total duration (minutes) in the 12 month period (Table 7.1.2).  
+
+On average riding minute per person, casual rider ride 7 minutes more than the annual members, it is a 20% higher riding duration than the annual members (Table 7.1.3). 
+
+```{r}
+
+mydata_cleaned %>% 
+  group_by(member_casual) %>% 
+  summarise(Riding_frequency = n()) %>% 
+  mutate(Percentage = paste0(round(Riding_frequency/sum(Riding_frequency)*100), '%')) %>% 
+  relocate(Percentage, .after = Riding_frequency) %>% 
+  kbl(align = "l",
+      table.attr = "style = 'width: 40%;'",
+      caption = "Table 7.1.1 Casual vs member Frequency") %>% 
+    kable_styling(bootstrap_options = c("bordered",
+                                      "hover")) %>% 
+  row_spec(2, color = "red")
+
+
+mydata_cleaned %>% 
+  group_by(member_casual) %>% 
+  summarise(total_riding_duration_min = sum(duration.min)) %>%  
+  mutate(Percentage = total_riding_duration_min / sum(total_riding_duration_min),
+         Percentage = paste0(round(Percentage*100), "%") ) %>% 
+  kbl(align = "l",
+      table.attr = "style = 'width: 40%;'",
+      caption = "Table 7.1.2 Casual vs member total riding duration in minutes") %>% 
+    kable_styling(bootstrap_options = c("bordered",
+                                      "hover")) %>% 
+  row_spec(1, color = "red")
+
+mydata_cleaned %>% 
+  group_by(member_casual) %>% 
+  summarise(average_riding_duration_min = mean(duration.min)) %>%  
+  mutate(Percentage = average_riding_duration_min / sum(average_riding_duration_min),
+         Percentage = paste0(round(Percentage*100), "%") ) %>% 
+  kbl(align = "l",
+      table.attr = "style = 'width: 40%;'",
+      caption = "Table 7.1.3 Casual vs member average riding duration in minutes") %>% 
+    kable_styling(bootstrap_options = c("bordered",
+                                      "hover")) %>% 
+  row_spec(1, color = "red")
+
+```
+
+These statistics suggest that casual riders are very important group of riders and they have a great demand of our bikes. 
+
+### 7.2 All riders love Summer
+
+This section incorporate years, months, seasons, and temperatures with the member types. A visualisation in EDA section will better explain this table.
+
+However, I have highlighted the top 5 rows that has the highest numbers of riders in following table (Table 7.2). The table suggest that riders love riding in the summer, which might be the best season for our marketing activities.
+
+```{r, message=FALSE, warning=FALSE}
+mydata_cleaned %>% 
+  group_by(year, month, season, mean_temp_oC, member_casual) %>% 
+    summarise(riding_frequency = n(),
+            total_riding_duration_min = sum(duration.min),
+            average_riding_duration_min = round(mean(duration.min),2)) %>% 
+  kbl(align = "c",
+      table.attr = "style = 'width: 100%;'",
+      caption = "Table 7.2 Year + Month + Season + Average temp (oC) + Membership type") %>% 
+  kable_styling(bootstrap_options = c("bordered",
+                                      "hover",
+                                      "striped")) %>% 
+  row_spec(5:8, color = "red", background = "yellow") %>% 
+  row_spec(10, color = "red", background = "yellow")
+
+```
+ 
+ 
+### 7.3 Statistics of the three ride-able types
+
+I wanted to compare which of the "classic_bike"  "docked_bike" and "electric_bike" are the most popular bike by simply looking at numbers of riders for each bike. However, this approach ceased because 3 of these different bikes are initiated by Cyclistic in different dates (see blue highlighted in following table 7.3). 
+
+It will be a unfair comparison if simply looking at proportion of riders in each bike category. I will visualise it in the EDA section, and it will tell a very good story! 
+ 
+ 
+```{r, message=FALSE, warning=FALSE}
+
+mydata_cleaned %>% 
+  group_by(year, month, rideable_type) %>% 
+  summarise(riding_frequency = n(),
+            total_riding_duration_min = sum(duration.min),
+            average_riding_duration_min = round(mean(duration.min),2)) %>% 
+  kbl(align = "l",
+      table.attr = "style = 'width: 70%;'",
+      caption = "Table 7.3 Blue strips are when a rideable type was first introduced") %>% 
+  kable_styling(bootstrap_options = c("bordered",
+                                      "hover",
+                                      "striped")) %>% 
+  row_spec(c(1, 4, 13), color = "white", background = "blue") 
+
+
+```
+ 
+### 7.4 Casual riders ride the most in non-working days  
+ 
+53% of casual riders love riding in non-working day that include public holiday, Saturday and Sunday, and 47% of casual riders love riding during working day. 
+
+Base on the data, it clearly suggest that nearly half of the casual riders ride during working day, it would imply a steady demand, and they need to write our bike constantly. Targeting these riders would have high casual-annual membership conversion. 
+
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+
+mydata_cleaned %>% 
+  group_by(member_casual, workingday) %>% 
+  summarise(riding_frequency = n(),
+            total_riding_duration_min = sum(duration.min),
+            average_riding_duration_min = round(mean(duration.min),2)) %>% 
+  mutate(average_riding_duration_percentage = 
+           average_riding_duration_min/sum(average_riding_duration_min),
+         average_riding_duration_percentage = 
+           paste0(round(average_riding_duration_percentage*100), "%")) %>% 
+  arrange(member_casual) %>% 
+  kbl(align = "l",
+      table.attr = "style = 'width: 70%;'",
+      caption = "Table 7.4 Non-working day (Sat + Sun + Pub.Holi) vs working day  ") %>% 
+  kable_styling(bootstrap_options = c("bordered",
+                                      "hover",
+                                      "striped")) %>% 
+  row_spec(1:2, color = "red")
+
+```
+
+
+### 7.5 Top 10 most frequently visited riding station
+
+There are total of 712 riding station in the data set for 3,742,262 times of riding over the given 12-month period from May-2020 to April-2020. It would be more practical just to quick viewing the **top 10** most frequently visited riding station. So, we can target marketing in these areas. Following statistics are based on the variable **start_station_name**, the column recording stations that riders started their rides. 
+
+```{r, message=FALSE, warning=FALSE}
+mydata_cleaned %>% 
+  group_by(member_casual, start_station_name) %>% 
+  summarise(count = n()) %>% 
+  filter(!is.na(start_station_name)) %>% 
+  arrange(member_casual, desc(count)) %>% 
+    top_n(10) %>% 
+  kbl(align = "c",
+      table.attr = "style = 'width: 40%'",
+      caption = "Table 7.5.1 Top 10 most frequently visited stations among 712 stations, by casual riders and annual members.") %>% 
+  kable_styling(bootstrap_options = c("hover", "striped", "bordered"))
+
+```
+
+
+
+## 8 EXPLORATORY DATA ANALYSIS (EDA)
+
+Since *casual rider* is the only group of interest, my EDA will mainly focus on studying and understanding this group of riders in order to design a specific recommendation for marketing purposes. However, annual riders would occasionally appear in the graphs when found that it is useful for comparison. 
+
+### 8.1 Which stations have most casual riders? 
+
+Since we have Geo-tagged data (with longitude and latitude), we are able to view them on a map to explore how are popular stations distributed. 
+
+```{r, message = FALSE, warning = FALSE}
+
+temp1 <- mydata_cleaned %>% 
+  filter(member_casual == "casual") %>%  # 3.7 mil riders to 1.5 mil of casual riders
+  group_by(start_station_name) %>% 
+  summarise(frequency = n()) 
+
+temp2 <- mydata_cleaned %>% 
+  filter(member_casual == "casual") %>% 
+  group_by(start_station_name, start_lat, start_lng) %>% 
+  summarise(frequency = n()) %>% 
+  group_by(start_station_name) %>% 
+  filter(row_number() == 1) 
+
+df8.1 <- merge(temp1, temp2, by = "start_station_name") %>% 
+  select(-frequency.y) %>% 
+  rename("frequency" = "frequency.x")    
+
+# df for the map - create "lab", "pop-up-info" and "category"
+
+df8.1 <- df8.1 %>% 
+  mutate(lab = paste0(start_station_name, " (", frequency, ")"),
+         pop_up_info = paste0(start_station_name, "<br/>",
+                              "Casual rider counts: ", frequency, "<br/>",
+                              "Lat: ", round(start_lat, 5), "<br/>",
+                              "Lat: ", round(start_lng, 5), "<br/>"
+                              )) %>% 
+  filter(!is.na(start_station_name)) %>%      #remove NA
+  mutate(category = cut(frequency,
+                        c(0, 500, 1000, 5000, 10000, 20000, 30000),
+                        labels = c("0-500", "500-1000", "1000-5000", "5000-10000", "10000-20000", ">20000")))
+
+# define a color to each group of the "category"
+
+palette <- colorFactor(palette = c("yellow", "green", "orange", "red", "black"), domain = df8.1$category)
+
+# Creating 6 layers for each of the category.
+
+Layer1 <- df8.1 %>% filter(frequency < 500)
+
+Layer2 <- df8.1 %>% filter(frequency > 500, frequency < 1000)
+
+Layer3 <- df8.1 %>% filter(frequency > 1000, frequency < 5000)
+
+Layer4 <- df8.1 %>% filter(frequency > 5000, frequency < 10000)
+
+Layer5 <- df8.1 %>% filter(frequency > 10000, frequency < 20000)
+
+Layer6 <- df8.1 %>% filter(frequency > 20000)
+
+
+
+leaflet() %>% 
+  addTiles(group = "OpenStreetMap (Default)") %>% 
+  addProviderTiles(providers$Esri.WorldImagery, group = "Esri") %>%
+  addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>% 
+  setView(lng = -87.6298, lat = 41.8781, zoom = 12) %>%  
+  addCircleMarkers(group = "Yellow: 0-500",
+                   data = Layer1,
+                   lat = ~ start_lat,
+                   lng = ~ start_lng,
+                   label = ~ lab,
+                   popup = ~ pop_up_info,
+                   color = ~ "Yellow",
+                   radius = 5,
+                   stroke = T,
+                   weight = 1,
+                   opacity = 1) %>% 
+  addCircleMarkers(group = "Gold: 500 - 1000",
+                   data = Layer2, 
+                   lat = ~ start_lat,
+                   lng = ~ start_lng,
+                   label = ~ lab,
+                   popup = ~ pop_up_info,
+                   color = ~"Gold",
+                   radius = 10,
+                   stroke = T,
+                   weight = 1,
+                   opacity = 1) %>% 
+  addCircleMarkers(group = "Green: 1000-5000",
+                   data = Layer3,
+                   lat = ~ start_lat,
+                   lng = ~ start_lng,
+                   label = ~ lab,
+                   popup = ~ pop_up_info,
+                   color = ~"Green",
+                   radius = 15,
+                   stroke = T,
+                   weight = 1,
+                   opacity = 1) %>% 
+  addCircleMarkers(group = "Orange: 5000 - 10000",
+                   data = Layer4, 
+                   lat = ~ start_lat,
+                   lng = ~ start_lng,
+                   label = ~ lab,
+                   popup = ~ pop_up_info,
+                   color = ~"Orange",
+                   radius = 20 ,
+                   stroke = T,
+                   weight = 1,
+                   opacity = 1) %>%
+  addCircleMarkers(group = "Red: 10000-20000",
+                   data = Layer5,
+                   lat = ~ start_lat,
+                   lng = ~ start_lng,
+                   label = ~ lab,
+                   popup = ~ pop_up_info,
+                   color = ~"Red",
+                   radius = 25 ,
+                   stroke = T,
+                   weight = 1,
+                   opacity = 1) %>% 
+  addCircleMarkers(group = "Black: >20000",
+                   data = Layer6,
+                   lat = ~ start_lat,
+                   lng = ~ start_lng,
+                   label = ~ lab,
+                   popup = ~ pop_up_info,
+                   color = ~ "Black",
+                   radius = 30,
+                   stroke = T,
+                   weight = 1,
+                   opacity = 1) %>% 
+  addLabelOnlyMarkers(group = "Casual-rider count",
+                      data = df8.1,
+                      lat = ~ start_lat,
+                      lng = ~ start_lng,
+                      label = ~ as.character(frequency),
+                      labelOptions = labelOptions(noHide = T, textOnly = F, textsize = 20, alpha = 0.5)) %>% 
+  addLayersControl(
+    baseGroups = c("Esri", "OpenStreetMap", "Toner Lite"), 
+    overlayGroups = c("Yellow: 0-500", "Gold: 500 - 1000", "Green: 1000-5000", 
+                      "Orange: 5000 - 10000", "Red: 10000-20000", "Black: >20000", "Casual-rider count"),
+    options = layersControlOptions(collapsed = F)
+  )
+
+
+```
+
+Have **Orange**, **Red** and **Black** category ticked, we can clearly see that most casual riders are concentrated in the coaster regions, where the central city is. It is likely linked with more choices of entertainment in the area.  
+
+![](C:\Users\karho\Desktop\Google Data Analytics Certificate\Course 8 Materials - Capstone project\cyclistic\figure8.JPG)
+
+
+Use this interactive table to filter out the top three bike station that hosting most casual riders.
+
+```{r, warning=FALSE, message=FALSE}
+
+df8.1DT <- df8.1 %>% 
+  select(category, start_station_name, frequency) %>% 
+  rename("Frequency grouping" = "category",
+         "Station name" = "start_station_name",
+         "Casual Rider Frequency" = "frequency")
+
+datatable(df8.1DT, filter = "top", rownames = FALSE)
+
+```
+
+The top 3 ride stations are:
+
+* 1. Streeter Dr & Grand Ave   
+* 2. Lake Shore Dr & Monroe St    
+* 3. Millennium Park  
+
+Please be aware that these are station named given by Cyclistic, it may be slightly different from the actual adjacent street names.
+
+
+### 8.2 Riding frequency of casual riders
+
+#### 8.2.1 Chicago Temperatures
+
+Prior to going deeper analysis, it is good to check on the temperatures of Chicago in different seasons as it would affect the experience of riding. For example, it might be too cold to be outdoor during winter in Chicago, when temperatures go below 0 Celsius. 
+
+
+```{r, fig.width = 8, fig.height=6, message=FALSE, warning=FALSE}
+df <- mydata_cleaned %>% 
+  select(month, mean_temp_oC, season) %>% 
+  group_by(month, mean_temp_oC, season) %>% 
+  summarise(count = n()) %>% 
+  select(-count)
+
+ggplot(df, aes(x = month, y = mean_temp_oC, colour = season, group = "mean_temp_oC")) +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey") + 
+  geom_vline(xintercept = 3, linetype = "dashed", colour = "grey") +
+  geom_vline(xintercept = 5, linetype = "dashed", colour = "grey") +
+  geom_vline(xintercept = 9, linetype = "dashed", colour = "grey") +
+  geom_vline(xintercept = 11, linetype = "dashed", colour = "grey") +
+  geom_text(label = "Winter", colour = "blue", show.legend = F, x = 1.5, y = 35) +
+  geom_text(label = "Spring", colour = "green4", show.legend = F, x = 4 , y = 35) +
+  geom_text(label = "Summer", colour = "red", show.legend = F, x = 7, y = 35) +
+  geom_text(label = "Autumn", colour = "darkgreen", show.legend = F, x = 10, y = 35) +
+  geom_text(label = "Winter", colour = "blue", show.legend = F, x = 12, y = 35) +
+  geom_point(shape = 21, size = 4) +
+  geom_path() +
+  geom_label(aes(label = mean_temp_oC)) +
+  scale_y_continuous(limits = c(-5, 40)) +
+  scale_x_continuous(limits = c(1, 12), breaks = seq(1, 12, 1)) +
+  theme_classic() +
+  scale_colour_manual(breaks = c("winter", "spring", "summer", "autumn"),
+                      values = c("blue", "green4", "red", "darkgreen")) +
+  theme(legend.position = "none",
+        plot.title = element_text(vjust = 2),
+        axis.title.x = element_text(margin = margin(10, 0, 0, 0)),
+        axis.title.y= element_text(margin = margin(0, 10, 0, 0)),
+        plot.margin = unit(c(1,1,1,1), "cm")) +
+  labs(title = "Average Monthly Temperatures (Celsius) of Chicago",
+       caption = "Kar Ng",
+       x = "Month",
+       y = "Average Temperature (oC)") 
+
+```
+
+
+
+
+#### 8.2.2 Casual riders per day
+
+Following figure shows that,
+
+* We had most casual riders in summer, and they disappeared during winter.    
+* Casual riders have taken up **electric bike** and **classic bike** when they were introduced in July 2020 and Dec 2020. Base on the figure, there is a trend anticipating that these type of bikes might would affect the popularity of docked bike in the fugure.  
+
+```{r, message=FALSE, fig.height=8, fig.width=9, message=FALSE, warning=FALSE}
+
+table6.2 <- mydata_cleaned %>% 
+  group_by(date, year, rideable_type, member_casual, mean_temp_oC, season, workingday) %>% 
+  summarise(daily_frequency = n())
+
+table6.2$member_casual <- factor(table6.2$member_casual, levels = c("member", "casual"))
+
+
+table6.2 %>% ggplot(aes(x = date, y = daily_frequency, 
+                colour = rideable_type, 
+                alpha = member_casual)) +
+    annotate("rect", fill = "yellow", alpha = 0.1,
+             xmin = as_date("2020-04-01"), xmax = as_date("2020-05-31"),
+             ymin = -Inf, ymax = Inf) +
+    annotate("rect", fill = "red", alpha = 0.1,
+             xmin = as_date("2020-05-31"), xmax = as_date("2020-09-30"),
+             ymin = -Inf, ymax = Inf) +
+    annotate("rect", fill = "darkgreen", alpha = 0.1,
+             xmin = as_date("2020-09-30"), xmax = as_date("2020-11-30"),
+             ymin = -Inf, ymax = Inf) +
+    annotate("rect", fill = "blue", alpha = 0.1,
+             xmin = as_date("2020-11-30"), xmax = as_date("2021-03-31"),
+             ymin = -Inf, ymax = Inf) +
+    annotate("rect", fill = "yellow", alpha = 0.1,
+             xmin = as_date("2021-03-31"), xmax = as_date("2021-05-31"),
+             ymin = -Inf, ymax = Inf) + 
+    geom_text(label = "Spring", colour = "green4", show.legend = F,
+              x = as_date("2020-05-01"),
+              y = 15000) +
+    geom_text(label = "Summer", colour = "red", show.legend = F,
+              x = as_date("2020-08-01"),
+              y = 15000) +
+    geom_text(label = "Autumn", colour = "darkgreen", show.legend = F,
+              x = as_date("2020-11-01"),
+              y = 15000) +
+    geom_text(label = "Winter", colour = "blue", show.legend = F,
+              x = as_date("2021-02-01"),
+              y = 15000) +
+    geom_text(label = "Spring", colour = "green4", show.legend = F,
+              x = as_date("2021-05-01"),
+              y = 15000) +
+  geom_point() +
+  geom_line(stat = "smooth", size = 1) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%Y %b") +
+  theme_bw() + 
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 25, vjust = 0.7),
+        axis.title.x = element_text(margin = margin(10, 0, 0, 0)),
+        axis.title.y = element_text(margin = margin(0, 10, 0, 0)),
+        panel.grid = element_blank()) +
+    labs(x = "Date",
+         y = "Daily Riding Frequency",
+         title = "Casual rider daily riding frequency",
+         subtitle = "Transparent points are member rider's frequency and follow the similar major trends",
+         caption = "Kar Ng",
+         colour = "Ride-able Type",
+         alpha = "Membership type")
+
+
+
+```
+
+
+
+### 8.3 Daily total riding hours of casual riders
+
+Interestingly, in the last summer, casual rider has the longer riding duration than member riders. This figure can be another supporting evidence indicating casual riders are valuable riders, and it worth our focus on converting them into annual members.
+
+```{r, fig.height=8, fig.width=9, message=FALSE, warning=FALSE}
+table6.3 <- mydata_cleaned %>% 
+  group_by(date, year, rideable_type, member_casual, mean_temp_oC, season, workingday) %>% 
+  summarise(daily_duration_hr = sum(duration.min)/60)
+
+table6.3$member_casual <- factor(table6.3$member_casual, levels = c("member", "casual"))
+
+table6.3 %>% ggplot(aes(x = date, y = daily_duration_hr, 
+                colour = rideable_type, 
+                alpha = member_casual)) +
+    annotate("rect", fill = "yellow", alpha = 0.1,
+             xmin = as_date("2020-04-01"), xmax = as_date("2020-05-31"),
+             ymin = -Inf, ymax = Inf) +
+    annotate("rect", fill = "red", alpha = 0.1,
+             xmin = as_date("2020-05-31"), xmax = as_date("2020-09-30"),
+             ymin = -Inf, ymax = Inf) +
+    annotate("rect", fill = "darkgreen", alpha = 0.1,
+             xmin = as_date("2020-09-30"), xmax = as_date("2020-11-30"),
+             ymin = -Inf, ymax = Inf) +
+    annotate("rect", fill = "blue", alpha = 0.1,
+             xmin = as_date("2020-11-30"), xmax = as_date("2021-03-31"),
+             ymin = -Inf, ymax = Inf) +
+    annotate("rect", fill = "yellow", alpha = 0.1,
+             xmin = as_date("2021-03-31"), xmax = as_date("2021-05-31"),
+             ymin = -Inf, ymax = Inf) + 
+    geom_text(label = "Spring", colour = "green4", show.legend = F,
+              x = as_date("2020-05-01"),
+              y = 6000) +
+    geom_text(label = "Summer", colour = "red", show.legend = F,
+              x = as_date("2020-08-01"),
+              y = 6000) +
+    geom_text(label = "Autumn", colour = "darkgreen", show.legend = F,
+              x = as_date("2020-11-01"),
+              y = 6000) +
+    geom_text(label = "Winter", colour = "blue", show.legend = F,
+              x = as_date("2021-02-01"),
+              y = 6000) +
+    geom_text(label = "Spring", colour = "green4", show.legend = F,
+              x = as_date("2021-05-01"),
+              y = 6000) +
+  geom_point(shape = 8) +
+  geom_line(stat = "smooth", size = 1) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%Y %b") +
+  theme_bw() + 
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 25, vjust = 0.7),
+        axis.title.x = element_text(margin = margin(10, 0, 0, 0)),
+        axis.title.y = element_text(margin = margin(0, 10, 0, 0)),
+        panel.grid = element_blank()) +
+    labs(x = "Date",
+         y = "Daily Riding Frequency",
+         title = "Daily riding HOURS of Casual rider",
+         subtitle = "Transparent points are member rider's frequency and follow the similar major trends",
+         caption = "Kar Ng",
+         colour = "Ride-able Type",
+         alpha = "Membership type")
+```
+
+### 8.4 What is the best time on a day to advertise casual rider?
+
+Across all four seasons, most casual riders love to ride during off-rush hours (see following graph), and again summer has the highest ride frequency per min during off-rush hours. Any physical marketing activities would be at the highest effectiveness during this period, as we would has the highest probability of meeting casual riders.
+
+If physical marketing activities are to be happened after 6pm, do it in the evening of spring and summer. According to following graph, many riders love evening-ride during spring and summer but not during autumn and winter.
+
+According to Chicago goverment [webiste](https://www.chicago.gov/city/en/depts/cdot/provdrs/traffic_signals_andstreetlights/news/2020/january/city-officials-will-enforce-am-and-pm-rush-hour-restrictions-on-.html), rush hours of Chicago are categorised into morning at between 7:00am to 9:30am and 4:00pm to 6:00pm.
+
+
+```{r, fig.height=8, fig.width=12, message=FALSE, warning=FALSE}
+
+# Setting the object for this section
+table6.4 <- mydata_cleaned %>% 
+  mutate(time = paste0(hour, ":" ,minute),
+         time2 = as.POSIXct(parse_hm(time))) %>%    #syntheses a column of time (hour:min)
+  group_by(date, year, time, time2, rideable_type, member_casual, mean_temp_oC, season, workingday) %>% 
+  summarise(frequency = n()) %>% 
+  filter(member_casual == "casual")
+
+table6.4$member_casual <- factor(table6.4$member_casual, levels = c("member",
+                                                                    "casual"))
+
+# Ploting the graph
+ggplot(table6.4, aes(x = time2, y = frequency,
+                     colour = season)) +
+  annotate("rect", fill = "gold", alpha = 0.5,
+           xmin = as.POSIXct(parse_hm("7:00")), xmax = as.POSIXct(parse_hm("9:30")),
+           ymin = -Inf, ymax = Inf) +
+  annotate("rect", fill = "gold", alpha = 0.5,
+           xmin = as.POSIXct(parse_hm("16:00")), xmax = as.POSIXct(parse_hm("18:00")),
+           ymin = -Inf, ymax = Inf) +
+  geom_point(alpha = 0.2) +
+  geom_line(stat = "smooth", colour = "black") +
+  scale_x_datetime(date_labels = "%H:%M", date_breaks = "2 hour") +
+  facet_wrap(~season) +
+  theme_classic() +
+  theme(legend.position = "none",
+        plot.margin = unit(c(1,1,1,1), "cm"),
+        axis.title.x = element_text(margin = margin(10, 0, 0, 0)),
+        axis.title.y = element_text(margin = margin(0, 10, 0, 0)),
+        strip.text = element_text(size = 15)) +
+  labs(title = "Total rides of Casual Riders per minute per day between may-2020 to april-2021 ",
+       subtitle = "Shaded regions are rush periods between 7:00am-9:30am and 4:00pm-6:00pm", 
+       caption = "Kar Ng",
+       x = "Time",
+       y = "Riding frequency per min")
+
+```
+
+
+### 8.5  Casual riders love Saturday
+
+High amount of casual riders in the weekend especially on Saturday (23%) than in the weekdays (mostly 11%).  
+
+  
+```{r, fig.height= 8, fig.width=8, message=FALSE, warning=FALSE}
+
+table6.5 <- mydata_cleaned %>% 
+  mutate(weekday = factor(weekday),
+         weekday = factor(weekday, 
+                          levels = c("Monday", "Tuesday", "Wednesday",
+                                     "Thursday", "Friday", "Saturday", 
+                                     "Sunday"))) %>% 
+  mutate(member_casual = factor(member_casual, 
+                                levels = c("member", "casual")),
+         member_casual = fct_recode(member_casual,
+                                    "Member riders" = "member",
+                                    "Casual riders" = "casual")) %>% 
+  group_by(weekday, member_casual) %>% 
+  summarise(wkday_frequency = n()) 
+
+table6.5.pct <- table6.5 %>% 
+  group_by(member_casual) %>% 
+  mutate(proportion = wkday_frequency/sum(wkday_frequency),
+         percentage = paste0(round(proportion*100), "%"))
+
+ggplot(table6.5, aes(x = weekday, y = wkday_frequency, alpha = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.5) +
+  geom_line(data = table6.5, aes(x = weekday, y = wkday_frequency, 
+                                 alpha = member_casual, group = member_casual)) +
+  geom_text(data = table6.5, aes(label = wkday_frequency), vjust = -0.25) +
+  geom_text(data = table6.5.pct, aes(label = paste0("(", percentage, ")")), vjust = -2, hjust = 0.3, colour = "blue") +
+  theme_bw() +
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 25, vjust = 0.7),
+        axis.title.y = element_text(margin = margin(0, 10, 0, 0)),
+        plot.margin = unit(c(1,1,1,1), "cm")) +
+  scale_y_continuous(limits = c(0, 400000) ,
+                     labels = function(x) paste0({x/1000}, "k")) +
+  labs(title = "Constant casual riders in the weekday and spike on Weekend",
+       subtitle = "Highlighting casual riders with member riders faded at the back", 
+       caption = "Kar Ng",
+       x = "Days of the week",
+       y = "Ride frequency")
+
+
+```
+
+
+However, the conversion rate of casual riders riding bike in the working week days into annual membership may be higher. 
+
+The number of rides by casual riders in the weekday is relatively constant, these casual riders are probably the same persons riding our bikes for their day-to-day activities in the week day such as work. 
+
+They have a constant demand compare to those casual riders in the weekend. They are likely just riding it once in a while and less in repeatedly. If resources are limited, I suggest to consider to invest advertisements on weekdays.
+
+
+Related statistics tables:
+
+```{r, message=FALSE, warning=FALSE}
+
+table6.5.pct %>% 
+  select(weekday, wkday_frequency, percentage) %>% 
+  arrange(member_casual) %>% 
+  rename("Membership type" = "member_casual",
+         "Day" = "weekday",
+         "Ride counts" = "wkday_frequency",
+         "Percentage" = "percentage") %>% 
+  kbl(align = "c",
+      table.attr = "style = 'width: 60%;'") %>% 
+  kable_styling(bootstrap_options = c("bordered", "hover", "striped")) %>% 
+  row_spec(c(6,7, 13, 14), bold = T) %>% 
+  pack_rows("Group 1:", 1, 7, color = "brown") %>% 
+  pack_rows("Group 2:", 8, 14, color = "brown")
+
+
+```
+
+
+
+## 9 CONCLUSION AND RECOMMENDATION
+
+**How are casual riders use Cyclistic bikes?**
+
+* Casual riders ride the most in regions near coastal regions, especially closer to where the city central is. The top 3 stations casual riders ride the most were Streeter Dr & Grand Ave, Lake Shore Dr & Monroe St, Millennium Park. Three of these stations accounts for 5% of 710 stations. 
+
+* Allocate more advertisement resources to  **electric bike** and **classic bike**, as casual riders have taken them up and replace **docked bike** since January 2021 to the latest available data in April 2021. 
+
+* Best Time for advertisement can be between 12pm - 5:30pm across 4 seasons but summer and spring can go beyond 5:30pm and up to 10pm. However, advertisement in autumn and winter is not recommended, at least to avoid large scale investment, because casual riders lost their interest in riding during cool temperatures in these seasons.
+
+**Why would casual riders buy Cyclistic annual memberships?**
+
+* Saturday has the highest casual rides at 23%, it is twice the number of riders in the weekday that has 11% across Monday to Thursday and 15% on Friday. However, I will argue advertisement that only targeting Saturday riders. Constant riding rates on weekdays may imply a constant demand of our bikes by casual riders. These casual riders in the week days are more likely to be converted into annual membership. 
+
+**How can Cyclistic use digital media to influence casual riders to become members?** 
+
+* Focus advertisement during spring and summer. Winter has minimum riders as it might be too cold to ride outside for casual purposes. 
+
+* Digital media best performed during spring and summer, advertise on popular medias such as Facebook, Twitter, Google, or Youtube during breakfast, lunch and dinner time ONLY in the weekdays, but morning and evening during weekend as current casual riders may be riding our bikes in the day time of weekend. Cyclistic can promote stations naar coastal regions if resources is limited (or best to promote all stations near coastal regions). Advertisements should focus on **electric bike** and **classic bike**.
+
+
+## 10 LEGALITY
+
+This is a personal project created and designed for non-commercial use only. The data set of this personal project was prepared by Google data analytic certificate course and was made available for students as a capstone project to publish online as online data analytic project to show experiences.
+
+However, this project is a personal project that extending the scope of the course, it is not submitted and graded by Google. Google and I, nor any stakeholders relevant to the creation of this project held any responsibility for any outcomes suffered from using the results of this project. This project is only created for educational and skill demonstration purposes.
+
+This personal project is slightly altered and is slightly different from the original content. It is for the purpose of showing some of my specific analytuc skills outside the range of the scope of the course. The content of this project should not be perceived as the original project content of the Google data analytic course.
+
+**Thank you for reading this project.**
+
+## 11 REFERENCES
+
+City Holidays n.d., viewed 24 May 2021, https://www.chicago.gov/city/en/narr/misc/city-holidays.html
+
+Wikipedia Chicago n.d., Chicago, viewed 25 May 2021, https://en.wikipedia.org/wiki/Chicago
+
+Claffey M, Hofer S, 2020, City Officials Will Enforce AM and PM Rush Hour Restrictions on New Chicago and Western Avenue Bus Only Lanes, viewed 28 May 2021, https://www.chicago.gov/city/en/depts/cdot/provdrs/traffic_signals_andstreetlights/news/2020/january/city-officials-will-enforce-am-and-pm-rush-hour-restrictions-on-.html
